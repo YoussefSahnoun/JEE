@@ -17,18 +17,16 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 @EnableWebSecurity
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/api/users/register","/api/users/login","/api/v1/items","/api/users/success").permitAll()
+                .antMatchers("/api/users/signup","/api/users/signin","/api/v1/items","/api/users/success","/api/v1/items/*").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
-                .loginPage("/Login")
+                .loginPage("/login.html")
                 .loginProcessingUrl("/api/users/login")// Combined login page and processing URL
-                .successHandler(successHandler())
                 .permitAll()
                 .and()
                 .logout()
@@ -36,20 +34,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .and()
                 .csrf().disable();
     }
-
-    private AuthenticationSuccessHandler successHandler() {
-        return new SimpleUrlAuthenticationSuccessHandler("/api/users/success");
-    }
-
-
-    @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+    public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-
+@CrossOrigin("localhost:3000/")
 @RestController
 @RequestMapping("/api/v1")
 public class ItemController {

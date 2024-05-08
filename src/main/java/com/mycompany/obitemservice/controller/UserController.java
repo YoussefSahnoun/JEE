@@ -1,61 +1,63 @@
 package com.mycompany.obitemservice.controller;
-import com.mycompany.obitemservice.model.UserLoginDTO;
-import com.mycompany.obitemservice.model.UserRegistrationDTO;
+
+import com.mycompany.obitemservice.model.User;
 import com.mycompany.obitemservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    @Autowired
-    private  UserService userService;
+
+    private final UserService userService;
 
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-
-    @PostMapping("/login")
-    public ResponseEntity<?> signIn(@RequestBody UserLoginDTO user) {
-        try {
-            boolean result = userService.signIn(user.getUsername(), user.getPassword());
-            System.out.println("Received login request for username: " + user.getUsername()+"with password :" + user.getPassword());
-            System.out.println(result);
-            if (result) {
-                return new ResponseEntity<>("Successfully signed in.", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Invalid username or password.", HttpStatus.UNAUTHORIZED);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>("Failed to sign in. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @PostMapping("/signup")
+    public Mono<ResponseEntity<String>> signUp(@RequestBody User user) {
+        return userService.existsByUsername(user.getUsername())
+                .flatMap(usernameExists -> {
+                    if (usernameExists) {
+                        return Mono.just(ResponseEntity.badRequest().body("Username already exists. Please choose a different one."));
+                    } else {
+                        return userService.existsByEmail(user.getEmail())
+                                .flatMap(emailExists -> {
+                                    if (emailExists) {
+                                        return Mono.just(ResponseEntity.badRequest().body("Email already exists. Please use a different one."));
+                                    } else {
+                                        return userService.signUp(user)
+                                                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body("Registration successful."));
+                                    }
+                                });
+                    }
+                })
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to sign up. Please try again.")));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody  UserRegistrationDTO userDTO) {
-        // Check if a user with the same username or email already exists
-        if (userService.getUserByUsername(userDTO.getUsername()) != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
-        }
-
-        if (userService.getUserByUsername(userDTO.getEmail()) != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already exists");
-        }
-
-        // If username and email are unique, proceed with user registration
-        userService.registerUser(userDTO);
-        String message = "User '" + userDTO.getUsername() + "' has been created successfully.";
-
-        // Redirect the user to /api/users/success
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Location", "/api/users/success");
-        return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(message);
+    @PostMapping("/signin")
+    public Mono<ResponseEntity<?>> signIn(@RequestBody User user) {
+        return userService.signIn(user.getUsername(), user.getPassword())
+                .flatMap(result -> {
+                    if (result) {
+                        return Mono.just(ResponseEntity.status(HttpStatus.FOUND).header("Location", "/api/v1/items").build());
+                    } else {
+                        return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password."));
+                    }
+                })
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to sign in. Please try again.")));
     }
 
+    @GetMapping("/logout")
+    public Mono<ResponseEntity<Object>> logout(ServerWebExchange exchange) {
+        return userService.logout(exchange)
+                .thenReturn(ResponseEntity.status(HttpStatus.FOUND).header("Location", "/login.html").build())
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to logout. Please try again.")));
+    }
 }

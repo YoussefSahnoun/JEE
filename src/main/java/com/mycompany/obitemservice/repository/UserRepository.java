@@ -1,8 +1,10 @@
 package com.mycompany.obitemservice.repository;
 
 import com.mycompany.obitemservice.model.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import reactor.core.publisher.Mono;
 
-public interface UserRepository extends MongoRepository<User, String> {
-    User findByUsername(String username);
+public interface UserRepository extends ReactiveMongoRepository<User, String> {
+    Mono<User> findByUsername(String username);
+    Mono<User> findByEmail(String email);
 }

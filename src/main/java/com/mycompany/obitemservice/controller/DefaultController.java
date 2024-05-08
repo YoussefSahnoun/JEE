@@ -12,9 +12,4 @@ public class DefaultController {
         return "redirect:http://localhost:3000/Login";
     }
 
-    @GetMapping("/Register")
-    public String redirectToRegisterPage() {
-        return "redirect:http://localhost:3000/Register";
-    }
-
 }*/

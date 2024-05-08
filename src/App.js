@@ -1,6 +1,6 @@
 
 import React from 'react';
-import Login from './components/Login';
+import ItemList from './components/ItemList';
 import Register from './components/Register';
 import { createRoot } from 'react-dom/client'; // Import createRoot from react-dom/client
 
@@ -16,8 +16,8 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/login" element={< Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/itemList" element={<ItemList />} />
             </Routes>
         </Router>
     );
